@@ -74,7 +74,7 @@ def fetch_city_rows(city: str) -> tuple[pd.Series, pd.DataFrame]:
         raise RuntimeError(f"No rows found for city='{city}'")
 
     # Your format: 2026-02-03T17:00:00+00:00
-    df["event_time_ts"] = pd.to_datetime(df["event_time"], utc=True)
+    df["event_time_ts"] = pd.to_datetime(df["event_time"], format="ISO8601", utc=True)
     df = df.sort_values("event_time_ts")
 
     latest_row = df.iloc[-1]
@@ -159,7 +159,7 @@ try:
     with right:
         st.subheader("Last ~3 days (model predictions)")
         recent = recent_df.copy()
-        recent["event_time_ts"] = pd.to_datetime(recent["event_time"], utc=True)
+        recent["event_time_ts"] = pd.to_datetime(recent["event_time"], format="ISO8601", utc=True)
         recent = recent.sort_values("event_time_ts")
 
         # ensure completeness for prediction
