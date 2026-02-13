@@ -1,5 +1,9 @@
 name: Feature pipeline (hourly)
 
+concurrency:
+  group: feature-hourly
+  cancel-in-progress: true
+
 on:
   schedule:
     - cron: "0 * * * *"   # every hour
