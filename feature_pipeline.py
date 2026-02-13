@@ -23,6 +23,7 @@ Hopsworks (required for storage):
 from __future__ import annotations
 
 import os
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Tuple, Optional
 
@@ -261,6 +262,29 @@ def get_or_create_fg(fs: Any) -> Any:
     )
 
 
+def retry_fg_insert(fg: Any, df: pd.DataFrame, retries: int = 3, base_sleep_s: int = 10) -> Any:
+    """
+    Hopsworks can occasionally drop the connection when starting the materialization job.
+    This retry handles transient network failures like:
+    - RemoteDisconnected
+    - ConnectionError / ProtocolError
+    """
+    last_err: Optional[BaseException] = None
+    for attempt in range(1, retries + 1):
+        try:
+            return fg.insert(df)
+        except requests.exceptions.RequestException as e:
+            last_err = e
+            sleep_s = base_sleep_s * attempt
+            print(f"[WARN] fg.insert failed (attempt {attempt}/{retries}): {e}")
+            print(f"[WARN] sleeping {sleep_s}s then retrying...")
+            time.sleep(sleep_s)
+    # If we reach here, all retries failed
+    if last_err is not None:
+        raise last_err
+    raise RuntimeError("fg.insert failed but no exception was captured.")
+
+
 def main() -> None:
     ow_key = require_env("OPENWEATHER_API_KEY")
     city = os.getenv("CITY", "Karachi")
@@ -275,7 +299,8 @@ def main() -> None:
     fs = project.get_feature_store()
     fg = get_or_create_fg(fs)
 
-    fg.insert(df_now)
+    # Retry insert to avoid random CI failures due to transient Hopsworks disconnects
+    retry_fg_insert(fg, df_now)
     print(f"Inserted current row: city={raw['city']} event_time={raw['fetched_at_utc']}")
 
     # 2) Optional backfill (run manually or in a one-off workflow)
@@ -287,7 +312,9 @@ def main() -> None:
             print("Backfill produced 0 rows. Skipping insert.")
             return
         df_hist = cast_to_feature_group_schema(df_hist)
-        fg.insert(df_hist)
+
+        # Retry backfill insert as well
+        retry_fg_insert(fg, df_hist)
         print(f"Inserted backfill rows: {len(df_hist)} (days={days})")
 
 
