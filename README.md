@@ -90,18 +90,33 @@ All pipelines run via GitHub Actions.
 
 ## 📂 Project Structure
 
+```text
 aqi-prediction/
 │
-├── requirements.txt
-├── streamlit_app/
-│ ├── app.py
-│ ├── requirements.txt
+├── .gitignore                     # Excludes venv, cache, and sensitive files
 │
-├── experiments/
-│ ├── shap_explain.py
+├── requirements.txt               # Core dependencies for pipelines
 │
-└── .github/workflows/
-
+├── feature_pipeline.py            # Hourly data ingestion + feature engineering
+├── training_pipeline.py           # Daily model training + model registry update
+│
+├── eda.py                         # Exploratory Data Analysis script
+├── EDA_Results.png                # AQI distribution visualization
+├── EDA_Results2.png               # Correlation heatmap visualization
+│
+├── streamlit_app/                 # Deployment layer (UI)
+│   ├── app.py                     # Streamlit dashboard application
+│   ├── requirements.txt           # UI-specific dependencies
+│   └── runtime.txt                # Python runtime version for deployment
+│
+├── experiments/                   # Offline experiments & model analysis
+│   └── shap_explain.py            # SHAP feature importance analysis
+│
+└── .github/
+    └── workflows/                 # CI/CD automation pipelines
+        ├── feature-hourly.yml     # Runs hourly feature ingestion
+        ├── train-daily.yml        # Runs daily model retraining
+        └── backfill-180.yml       # Historical data backfill workflow
 
 ---
 
@@ -109,10 +124,10 @@ aqi-prediction/
 
 Set environment variables:
 
-HOPSWORKS_HOST
-HOPSWORKS_PROJECT
-HOPSWORKS_API_KEY
-CITY
+-HOPSWORKS_HOST
+-HOPSWORKS_PROJECT
+-HOPSWORKS_API_KEY
+-CITY
 
 
 Run:
